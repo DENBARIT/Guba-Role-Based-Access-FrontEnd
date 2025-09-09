@@ -1,7 +1,5 @@
-
-
 import React, { useEffect, useState } from "react";
-import api from '../api/apiClient.js';
+import api from "../api/apiClient.js";
 
 export default function AuditLogsPage({ apiBaseUrl = "" }) {
   const [logs, setLogs] = useState([]);
@@ -20,7 +18,16 @@ export default function AuditLogsPage({ apiBaseUrl = "" }) {
 
   useEffect(() => {
     fetchLogs();
-  }, [page, pageSize, search, startDate, endDate, entityName, entityId, actorEmail]);
+  }, [
+    page,
+    pageSize,
+    search,
+    startDate,
+    endDate,
+    entityName,
+    entityId,
+    actorEmail,
+  ]);
 
   async function fetchLogs() {
     setLoading(true);
@@ -38,7 +45,7 @@ export default function AuditLogsPage({ apiBaseUrl = "" }) {
       };
 
       console.log("Params sent to API:", params);
-      const res = await api.get('/auditlogs', { params }); 
+      const res = await api.get("/auditlogs", { params });
       setLogs(res.data.items || []);
       setTotalCount(res.data.totalCount ?? 0);
     } catch (err) {
@@ -50,13 +57,26 @@ export default function AuditLogsPage({ apiBaseUrl = "" }) {
 
   function prettyDate(s) {
     if (!s) return "-";
-    try { return new Date(s).toLocaleString(); } catch { return s; }
+    try {
+      return new Date(s).toLocaleString();
+    } catch {
+      return s;
+    }
   }
 
   async function exportCsv() {
     try {
-      const qs = new URLSearchParams({ search, startDate, endDate, entityName, entityId, actorEmail });
-      const res = await api.get(`/auditlogs/export?${qs.toString()}`, { responseType: 'blob' });
+      const qs = new URLSearchParams({
+        search,
+        startDate,
+        endDate,
+        entityName,
+        entityId,
+        actorEmail,
+      });
+      const res = await api.get(`/auditlogs/export?${qs.toString()}`, {
+        responseType: "blob",
+      });
 
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement("a");
@@ -66,7 +86,30 @@ export default function AuditLogsPage({ apiBaseUrl = "" }) {
       a.click();
       a.remove();
     } catch (err) {
-      alert("Failed to export CSV: " + (err.response?.statusText || err.message));
+      alert(
+        "Failed to export CSV: " + (err.response?.statusText || err.message)
+      );
+    }
+  }
+
+  // ✅ Delete ALL audit logs currently displayed
+  async function deleteAllAuditLogs() {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete ALL audit logs on this page?"
+      )
+    )
+      return;
+    try {
+      for (const log of logs) {
+        await api.delete(`/auditlogs/${log.id}`);
+      }
+      setLogs([]); // clear page
+      setTotalCount((prev) => prev - logs.length);
+    } catch (err) {
+      alert(
+        "Failed to delete logs: " + (err.response?.data?.message || err.message)
+      );
     }
   }
 
@@ -79,13 +122,52 @@ export default function AuditLogsPage({ apiBaseUrl = "" }) {
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap gap-2 items-end">
-        <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="border p-2 rounded"/>
-        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border p-2 rounded"/>
-        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="border p-2 rounded"/>
-        <input type="text" placeholder="Entity Name" value={entityName} onChange={(e) => setEntityName(e.target.value)} className="border p-2 rounded"/>
-        <input type="text" placeholder="Entity ID" value={entityId} onChange={(e) => setEntityId(e.target.value)} className="border p-2 rounded"/>
-        <input type="text" placeholder="Actor Email" value={actorEmail} onChange={(e) => setActorEmail(e.target.value)} className="border p-2 rounded"/>
-        <button onClick={fetchLogs} className="px-3 py-2 bg-blue-600 text-white rounded">Apply</button>
+        <input
+          type="text"
+          placeholder="Search..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border p-2 rounded"
+        />
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="border p-2 rounded"
+        />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="border p-2 rounded"
+        />
+        <input
+          type="text"
+          placeholder="Entity Name"
+          value={entityName}
+          onChange={(e) => setEntityName(e.target.value)}
+          className="border p-2 rounded"
+        />
+        <input
+          type="text"
+          placeholder="Entity ID"
+          value={entityId}
+          onChange={(e) => setEntityId(e.target.value)}
+          className="border p-2 rounded"
+        />
+        <input
+          type="text"
+          placeholder="Actor Email"
+          value={actorEmail}
+          onChange={(e) => setActorEmail(e.target.value)}
+          className="border p-2 rounded"
+        />
+        <button
+          onClick={fetchLogs}
+          className="px-3 py-2 bg-blue-600 text-white rounded"
+        >
+          Apply
+        </button>
       </div>
 
       {/* Table */}
@@ -105,7 +187,9 @@ export default function AuditLogsPage({ apiBaseUrl = "" }) {
           <tbody>
             {logs.length === 0 ? (
               <tr>
-                <td colSpan="5" className="text-center p-4">No logs found</td>
+                <td colSpan="5" className="text-center p-4">
+                  No logs found
+                </td>
               </tr>
             ) : (
               logs.map((log) => (
@@ -128,11 +212,16 @@ export default function AuditLogsPage({ apiBaseUrl = "" }) {
           <span>Rows per page:</span>
           <select
             value={pageSize}
-            onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
             className="border p-2 rounded"
           >
-            {[10, 25, 50, 100].map(size => (
-              <option key={size} value={size}>{size}</option>
+            {[10, 25, 50, 100].map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
             ))}
           </select>
         </div>
@@ -142,7 +231,9 @@ export default function AuditLogsPage({ apiBaseUrl = "" }) {
             disabled={page === 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             className="px-3 py-2 bg-gray-300 rounded disabled:opacity-50"
-          >Prev</button>
+          >
+            Prev
+          </button>
 
           <span>
             Page{" "}
@@ -153,7 +244,8 @@ export default function AuditLogsPage({ apiBaseUrl = "" }) {
               value={page}
               onChange={(e) => {
                 let val = Number(e.target.value);
-                if (!isNaN(val)) setPage(Math.min(Math.max(1, val), totalPages));
+                if (!isNaN(val))
+                  setPage(Math.min(Math.max(1, val), totalPages));
               }}
               className="w-16 border p-1 rounded text-center"
             />{" "}
@@ -164,15 +256,26 @@ export default function AuditLogsPage({ apiBaseUrl = "" }) {
             disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}
             className="px-3 py-2 bg-gray-300 rounded disabled:opacity-50"
-          >Next</button>
+          >
+            Next
+          </button>
         </div>
 
-        <button
-          onClick={exportCsv}
-          className="px-3 py-2 bg-green-600 text-white rounded"
-        >
-          Export CSV
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={exportCsv}
+            className="px-3 py-2 bg-green-600 text-white rounded"
+          >
+            Export CSV
+          </button>
+          <button
+            onClick={deleteAllAuditLogs}
+            disabled={logs.length === 0}
+            className="px-3 py-2 bg-red-600 text-white rounded"
+          >
+            Delete All Logs
+          </button>
+        </div>
       </div>
     </div>
   );
